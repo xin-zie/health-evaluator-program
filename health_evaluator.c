@@ -1,262 +1,209 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
+#include <time.h> 
 
-// Constants
-#define max_test 10
-#define max_recommendation 10
-#define config_file "patient_data.csv"
-#define report_file "evaluation_report.txt"
+#define profile_file "the_profile.csv"
+#define report_file  "the_health_report.txt"
 
-// DIANE'S PART
 typedef struct {
-    int id;
+    float bmi;
+    int bmi_status;
+    int bp_status;
+    int bs_status;
+    int chol_status;
+} HealthData;
+
+typedef struct {
     char name[50];
-    float weight; // in kg
-    float height; // in meters
-    int bp_sys; // systolic BP
-    int bp_dias; // diastolic BP
-    int bs; // blood sugar
-    int chol; // cholesterol
-    HealthData analysis; // To store the results from analyzeData
-} Patient;
+    float weight;
+    float height;
+    int bp_sys;
+    int bp_dias;
+    int bs;
+    int chol;
+    int bs_flag;
+    HealthData analysis;
+} Profile;
 
-Patient* loadPatientFile(int* count) {
-    FILE *file = fopen(config_file, "r");
-    if (file == NULL) {
-        printf("Error: Cannot open input file %s.\n", config_file);
-        *count = 0;
-        return NULL;
-    }
+// Function prototypes
+HealthData analyzeData(float weight, float height, int bp_sys, int bp_dias, int bs, int chol); 
+void dietAddAvoid(HealthData data, FILE *fp);
+void exerciseAddAvoid(HealthData data, FILE *fp);
 
-    // Determine the number of records by counting lines
-    int num_records = 0;
-    char line[200];
-    while (fgets(line, sizeof(line), file) != NULL) {
-        // Skip header line if present and non-data lines
-        if (num_records == 0 && strncmp(line, "ID,Name,", 8) == 0) {
-            continue; // Skip header
-        }
-        num_records++;
-    }
+const char *const bmi_labels[] = {
+    "Underweight",
+    "Normal",
+    "Overweight",
+    "Obesity Class 1",
+    "Obesity Class 2",
+    "Obesity Class 3"
+};
 
-    if (num_records == 0) {
-        printf("No patient data found in %s.\n", config_file);
-        fclose(file);
-        *count = 0;
-        return NULL;
-    }
+const char *const bp_labels[] = {
+    "Hypotension (Low)",
+    "Normal",
+    "Elevated",
+    "Stage 1 Hypertension",
+    "Stage 2 Hypertension",
+    "Hypertensive Crisis"
+};
 
-    // Allocate memory for the patient array
-    Patient *patients = (Patient *)malloc(num_records * sizeof(Patient));
-    if (patients == NULL) {
-        perror("Error allocating memory");
-        fclose(file);
-        *count = 0;
-        return NULL;
-    }
+const char *const bs_labels[] = {
+    "Dangerously Low",
+    "Low",
+    "Normal",
+    "High",
+    "Dangerously High"
+};
 
-    // Reset file pointer to the beginning for reading data
-    fseek(file, 0, SEEK_SET);
+const char *const chol_labels[] = {
+    "Low Heart Disease Risk",
+    "Borderline Risk",
+    "High Risk"
+};
 
-    int i = 0;
-    // Skip the header line again if we're reading from the start
-    if (fgets(line, sizeof(line), file) != NULL && strncmp(line, "ID,Name,", 8) == 0) {
-         // Header skipped
-    } else {
-        // No header, reset file pointer and process the first line
-        fseek(file, 0, SEEK_SET);
-    }
-    
-    // Read data line by line
-    while (i < num_records && fgets(line, sizeof(line), file) != NULL) {
-        // Use sscanf to parse the CSV format
-        if (sscanf(line, "%d,%49[^,],%f,%f,%d,%d,%d,%d",
-                   &patients[i].id, 
-                   patients[i].name, 
-                   &patients[i].weight, 
-                   &patients[i].height, 
-                   &patients[i].bp_sys, 
-                   &patients[i].bp_dias, 
-                   &patients[i].bs, 
-                   &patients[i].chol) == 8) {
-            
-            // Analyze the data immediately upon reading
-            patients[i].analysis = analyzeData(patients[i].weight, 
-                                                patients[i].height, 
-                                                patients[i].bp_sys, 
-                                                patients[i].bp_dias, 
-                                                patients[i].bs, 
-                                                patients[i].chol);
-            i++;
-        } else {
-            fprintf(stderr, "Warning: Skipping invalid line in data file: %s", line);
-        }
-    }
+// -----------------------------------------
+// SAVE PROFILE TO CSV
+// -----------------------------------------
+
+void saveProfile(Profile p) {
+    FILE* file = fopen(profile_file, "w");
+    if (!file) return;
+
+    // Modified fprintf to include the full labels
+    fprintf(file, "Name: %s,\nWeight: %.2f,\nHeight: %.2f,\nBlood Pressure Systolic: %d,\nBlood Pressure Diastolic: %d,\nBlood Sugar: %d,\nCholesterol: %d",
+            p.name, p.weight, p.height, p.bp_sys, p.bp_dias, p.bs, p.chol);
 
     fclose(file);
-    *count = i; // Actual number of successfully loaded patients
-    printf("\n[SUCCESS] Loaded and analyzed data for %d patients from %s.\n", *count, config_file);
-    return patients;
 }
 
-void saveReportToFile(const Patient* patients, int count) {
-    FILE *fp = fopen(report_file, "w");
-    if (fp == NULL) {
-        perror("Error: Cannot open report file for writing");
-        return;
-    }
+// -----------------------------------------
+// LOAD PROFILE FROM CSV
+// -----------------------------------------
 
-    fprintf(fp, "========================================================\n");
-    fprintf(fp, "               PATIENT HEALTH EVALUATION REPORT\n");
-    fprintf(fp, "========================================================\n");
-    fprintf(fp, "Total Patients Processed: %d\n\n", count);
+int loadProfile(Profile* p) {
+    FILE* file = fopen(profile_file, "r");
+    if (!file) return 0;
 
-    for (int i = 0; i < count; i++) {
-        fprintf(fp, "--- Patient ID: %d | Name: %s ---\n", patients[i].id, patients[i].name);
-        fprintf(fp, "Raw Data: W=%.2f kg, H=%.2f m, BP=%d/%d, BS=%d, Chol=%d\n",
-                patients[i].weight, patients[i].height, patients[i].bp_sys, patients[i].bp_dias, 
-                patients[i].bs, patients[i].chol);
-        fprintf(fp, "BMI (Body Mass Index): %.2f\n", patients[i].analysis.bmi);
+    fscanf(file, "%49[^,],%f,%f,%d,%d,%d,%d",
+           p->name, &p->weight, &p->height,
+           &p->bp_sys, &p->bp_dias, &p->bs, &p->chol);
 
-        // Print Statuses (Helper function could map statuses to strings for better output)
-        fprintf(fp, "STATUSES:\n");
-        fprintf(fp, "- BMI Status Code: %d\n", patients[i].analysis.bmi_status);
-        fprintf(fp, "- BP Status Code: %d\n", patients[i].analysis.bp_status);
-        fprintf(fp, "- Blood Sugar Status Code: %d\n", patients[i].analysis.bs_status);
-        fprintf(fp, "- Cholesterol Status Code: %d\n", patients[i].analysis.chol_status);
-        
-        // Include Nat's part (Diet and Exercise Recommendations)
-        dietAddAvoid(patients[i].analysis, fp);
-        exerciseAddAvoid(patients[i].analysis, fp);
+    fclose(file);
 
-        fprintf(fp, "\n--------------------------------------------------------\n\n");
-    }
+    p->analysis = analyzeData(
+        p->weight, p->height,
+        p->bp_sys, p->bp_dias,
+        p->bs, p->chol
+    );
+
+    return 1;
+}
+
+// -----------------------------------------
+// REPORT GENERATOR
+// -----------------------------------------
+
+void generateReport(Profile p) {
+    FILE* fp = fopen(report_file, "w");
+
+    fprintf(fp, "HEALTH REPORT FOR: %s\n", p.name);
+    fprintf(fp, "==============================\n");
+
+    fprintf(fp, "BMI: %.2f (Status: %s)\n",
+            p.analysis.bmi,
+            bmi_labels[p.analysis.bmi_status]);
+
+    fprintf(fp, "Blood Pressure: %d/%d (%s)\n",
+            p.bp_sys, p.bp_dias,
+            bp_labels[p.analysis.bp_status]);
+
+    fprintf(fp, "Blood Sugar: %d (%s)\n",
+            p.bs,
+            bs_labels[p.analysis.bs_status]);
+
+    fprintf(fp, "Cholesterol: %d (%s)\n",
+            p.chol,
+            chol_labels[p.analysis.chol_status]);
 
     fclose(fp);
-    printf("[SUCCESS] Generated report saved to %s.\n", report_file);
-}
-// RYAN'S PART
-typedef struct{
-    float bmi; // Raw calculation of the patient's BMI
-    int bmi_status; // 0: Underweight, 1: Normal, 2: Overweight, 3: Class 1 Obesity, 4: Class 2 Obesity, 5: Class 3 Obesity
-    int bp_status; // 0: Low (Hypotension), 1: Normal, 2: Elevated, 3: Stage 1 Hypertension, 4: Stage 2 Hypertension, 5: Hypertensive Crisis
-    int bs_status; // 0: Dangerously Low, 1: Low, 2: Normal, 3: High, 4: Dangerously High
-    int chol_status; // 0: Low Heart Disease Risk, 1: Borderline Heart Disease Risk, 2: High Heart Disease Risk
-} HealthData; // var name of the structure
 
-HealthData analyzeData(float weight, float height, int bp_sys, int bp_dias, int bs, int chol){ // bp_sys: systolic, bp_dias: diastolic, bs: blood sugar, chol: cholesterol
-    HealthData data; // Create the package named "data."
-
-    //Calculate the BMI
-    data.bmi = weight / (height * height);
-    printf("BMI: %.2f\n", data.bmi);
-
-    // 1. BMI Status
-    printf("Weight Type: ");
-    if(data.bmi < 18.5){
-        data.bmi_status = 0; // Underweight
-        printf("Underweight\n");
-    }
-    else if(data.bmi < 25.0){
-        data.bmi_status = 1; // Normal
-        printf("Normal\n");
-    }
-    else if(data.bmi < 30.0){
-        data.bmi_status = 2; // Overweight
-        printf("Overweight\n");
-    }
-    else if(data.bmi < 35.0){
-        data.bmi_status = 3; // Class 1 Obesity
-        printf("Class 1 Obesity\n");
-    }
-    else if(data.bmi < 40.0){
-        data.bmi_status = 4; // Class 2 Obesity
-        printf("Class 2 Obesity\n");
-    }
-    else{
-        data.bmi_status = 5; // Class 3 Obesity
-        printf("Class 3 Obesity\n");
-    }
-
-
-    // 2. Blood Pressure
-    // "If the two numbers fall under different categories, the higher(worse) category applies", so we start at the worst category possible
-    printf("Blood Pressure Category: ");
-    if(bp_sys >= 180 || bp_dias >= 120){
-        data.bp_status = 5; // Hypertensive Crisis
-        printf("Hypertensive Crisis\n");
-    }
-    else if(bp_sys >= 140 || bp_dias >= 90){
-        data.bp_status = 4; // Stage 2 Hypertension
-        printf("Stage 2 Hypertension\n");
-    }
-    else if((bp_sys >= 130 && bp_sys <= 139) || (bp_dias >= 80 && bp_dias <= 89)){
-        data.bp_status = 3; // Stage 1 Hypertension
-        printf("Stage 1 Hypertension\n");
-    }
-    else if((bp_sys >= 120 && bp_sys <= 129) && bp_dias >= 80){
-        data.bp_status = 2; // Elevated
-        printf("Elevated\n");
-    }
-    else if((bp_sys < 120 && bp_sys >= 90) && (bp_dias < 80 && bp_dias >= 60)){
-        data.bp_status = 1; // Normal
-        printf("Normal\n");
-    }
-    else{
-        data.bp_status = 0; // Low (Hypotension)
-        printf("Low (Hypotension)\n");
-    }
-
-    // 3. Blood Sugar
-    printf("Blood Sugar Level: ");
-    if(bs < 80){
-        data.bs_status = 0; // Dangerously Low
-        printf("Dangerously Low\n");
-    }
-    else if(bs < 90){
-        data.bs_status = 1; // Low
-        printf("Low\n");
-    }
-    else if(bs < 140){
-        data.bs_status = 2; // Normal
-        printf("Normal\n");
-    }
-    else if(bs < 220){
-        data.bs_status = 3; // High
-        printf("High\n");
-    }
-    else{
-        data.bs_status = 4; // Dangerously High
-        printf("Dangerously High\n");
-    }
-
-
-    // 4. Cholesterol
-    printf("Cholesterol Classification: ");
-    if(chol < 200){
-        data.chol_status = 0; // Low Heart Disease Risk
-        printf("Low Heart Disease Risk\n");
-    }
-    else if(chol < 240){
-        data.chol_status = 1; // Borderline Heart Disease Risk
-        printf("Borderline Heart Disease Risk\n");
-    }
-    else{
-        data.chol_status = 2; // High Heart Disease Risk
-        printf("High Heart Disease Risk\n");
-    }
-
-    return data; //returns the entire package
+    printf("\n[SUCCESS] Personal report generated in %s\n", report_file);
 }
 
-int main(){
-    HealthData results = analyzeData(51.5, 1.65, 125, 88, 150, 220);
+// -----------------------------------------
+// ANALYSIS FUNCTION
+// -----------------------------------------
+
+HealthData analyzeData(float weight, float height, int bp_sys, int bp_dias, int bs, int chol) {
+    HealthData data;
+
+    // Auto detect height in cm or meters
+    float h = height;
+    if (h > 3.0f) h /= 100.0f; // convert cm → m
+
+    data.bmi = (h > 0) ? weight / (h * h) : 0.0f;
+
+    // BMI classification
+    if (data.bmi < 18.5) 
+        data.bmi_status = 0;
+    else if (data.bmi < 25.0) 
+        data.bmi_status = 1;
+    else if (data.bmi < 30.0) 
+        data.bmi_status = 2;
+    else if (data.bmi < 35.0) 
+        data.bmi_status = 3;
+    else if (data.bmi < 40.0) 
+        data.bmi_status = 4;
+    else data.bmi_status = 5;
+
+    // BP
+    if (bp_sys >= 180 || bp_dias >= 120) 
+        data.bp_status = 5;
+    else if (bp_sys >= 140 || bp_dias >= 90) 
+        data.bp_status = 4;
+    else if (bp_sys >= 130 || bp_dias >= 80) 
+        data.bp_status = 3;
+    else if (bp_sys >= 120 && bp_dias < 80) 
+        data.bp_status = 2;
+    else if (bp_sys < 120 && bp_dias < 80) 
+        data.bp_status = 1;
+    else data.bp_status = 0;
+
+    // Blood Sugar
+    if (bs < 80)   
+        data.bs_status = 0;
+    else if (bs < 90) 
+        data.bs_status = 1;
+    else if (bs < 140) 
+        data.bs_status = 2;
+    else if (bs < 220) 
+        data.bs_status = 3;
+    else 
+        data.bs_status = 4;
+
+    // Cholesterol
+    if (chol < 200) 
+        data.chol_status = 0;
+    else if (chol < 240) 
+        data.chol_status = 1;
+    else 
+        data.chol_status = 2;
+
+    return data;
 }
 
-// Nat's PART
+// -----------------------------------------
+// RECOMMENDATIONS FUNCTION
+// -----------------------------------------
+
 void dietAddAvoid(HealthData data, FILE *fp) {
+    #define PRINT_LINE(fmt, ...) \
+        do { \
+            if(fp) fprintf(fp, fmt, ##__VA_ARGS__); \
+            printf(fmt, ##__VA_ARGS__); \
+        } while(0)
 
     fprintf(fp, "\n==========================================\n");
     fprintf(fp, "            DIET RECOMMENDATIONS\n");
@@ -373,6 +320,7 @@ void dietAddAvoid(HealthData data, FILE *fp) {
 
     fprintf(fp, "\n==========================================\n");
 }
+
 void exerciseAddAvoid(HealthData data, FILE *fp) {
 
     fprintf(fp, "\n==========================================\n");
@@ -458,5 +406,108 @@ void exerciseAddAvoid(HealthData data, FILE *fp) {
     fprintf(fp, "\n==========================================\n");
 }
 
+// -----------------------------------------
+// MAIN MENU
+// -----------------------------------------
 
+int main() {
+    Profile user;
+    int exists = loadProfile(&user);
 
+    while (1) {
+        printf("\n=== MY PERSONAL HEALTH TRACKER ===\n");
+        if (exists) printf("Active Profile: %s\n", user.name);
+        else printf("No Profile Found.\n");
+
+        printf("1. Update/Create Profile\n");
+        printf("2. View Full Report\n");
+        printf("3. View Diet Recommendations\n");
+        printf("4. View Exercise Recommendations\n");
+        printf("5. Exit\n");
+        printf("Choice: ");
+
+        int choice;
+        scanf("%d", &choice);
+
+        if (choice == 1) {
+
+            if (!exists) {
+                printf("Enter Name: ");
+                scanf(" %49[^\n]", user.name);
+            }
+
+            printf("Weight (kg): ");
+            scanf("%f", &user.weight);
+
+            printf("Height (m or cm): ");
+            scanf("%f", &user.height);
+
+            printf("BP Systolic: ");
+            scanf("%d", &user.bp_sys);
+
+            printf("BP Diastolic: ");
+            scanf("%d", &user.bp_dias);
+
+            printf("Blood Sugar: ");
+            scanf("%d", &user.bs);
+
+            printf("Cholesterol: ");
+            scanf("%d", &user.chol);
+
+            user.analysis = analyzeData(
+                user.weight, user.height,
+                user.bp_sys, user.bp_dias,
+                user.bs, user.chol
+            );
+
+            saveProfile(user);
+            exists = 1;
+
+            printf("\nProfile saved!\n");
+        }
+        else if (choice == 2) {
+            if (!exists)
+                printf("No profile exists. Create one first.\n");
+            else
+                generateReport(user);
+        }
+        else if (choice == 3) {
+            if (!exists) {
+                printf("No profile exists. Create one first.\n");
+            } else {
+                FILE* fp = fopen(report_file, "a");  // append mode
+                if (!fp) fp = stdout;
+                time_t now = time(NULL);
+                struct tm* t = localtime(&now);
+                fprintf(fp, "\n\n===== Diet Recommendations generated on %04d-%02d-%02d %02d:%02d:%02d =====\n",
+                        t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
+                        t->tm_hour, t->tm_min, t->tm_sec);
+
+                dietAddAvoid(user.analysis, fp);
+                if (fp != stdout) fclose(fp);
+                printf("\nDiet recommendations appended in %s\n", report_file);
+            }
+        }
+        else if (choice == 4) {
+            if (!exists) {
+                printf("No profile exists. Create one first.\n");
+            } else {
+                FILE* fp = fopen(report_file, "a");  // append mode
+                if (!fp) fp = stdout;
+                time_t now = time(NULL);
+                struct tm* t = localtime(&now);
+                fprintf(fp, "\n\n===== Exercise Recommendations generated on %04d-%02d-%02d %02d:%02d:%02d =====\n",
+                        t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
+                        t->tm_hour, t->tm_min, t->tm_sec);
+
+                exerciseAddAvoid(user.analysis, fp);
+                if (fp != stdout) fclose(fp);
+                printf("\nExercise recommendations appended in %s\n", report_file);
+            }
+        }
+
+        else break;
+    }
+
+    return 0;
+}

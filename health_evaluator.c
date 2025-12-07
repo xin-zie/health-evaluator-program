@@ -9,17 +9,17 @@
 #define config_file "patient_data.csv"
 #define report_file "evaluation_report.txt"
 
-// RYAN PART
+// RYAN'S PART
 typedef struct{
     float bmi; // Raw calculation of the patient's BMI
     int bmi_status; // 0: Underweight, 1: Normal, 2: Overweight, 3: Class 1 Obesity, 4: Class 2 Obesity, 5: Class 3 Obesity
     int bp_status; // 0: Low (Hypotension), 1: Normal, 2: Elevated, 3: Stage 1 Hypertension, 4: Stage 2 Hypertension, 5: Hypertensive Crisis
-    int bs_status; // 0: Dangerously Low, 1: Low, 2: Normal, 3: High, 4: Dangereously High
+    int bs_status; // 0: Dangerously Low, 1: Low, 2: Normal, 3: High, 4: Dangerously High
     int chol_status; // 0: Low Heart Disease Risk, 1: Borderline Heart Disease Risk, 2: High Heart Disease Risk
 } HealthData; // var name of the structure
 
 HealthData analyzeData(float weight, float height, int bp_sys, int bp_dias, int bs, int chol){ // bp_sys: systolic, bp_dias: diastolic, bs: blood sugar, chol: cholesterol
-    HealthData data; // Create the package named "data"
+    HealthData data; // Create the package named "data."
 
     //Calculate the BMI
     data.bmi = weight / (height * height);
@@ -329,4 +329,5 @@ void exerciseAddAvoid(HealthData data, FILE *fp) {
 
     fprintf(fp, "\n==========================================\n");
 }
+
 

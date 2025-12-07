@@ -9,6 +9,134 @@
 #define config_file "patient_data.csv"
 #define report_file "evaluation_report.txt"
 
+// DIANE'S PART
+typedef struct {
+    int id;
+    char name[50];
+    float weight; // in kg
+    float height; // in meters
+    int bp_sys; // systolic BP
+    int bp_dias; // diastolic BP
+    int bs; // blood sugar
+    int chol; // cholesterol
+    HealthData analysis; // To store the results from analyzeData
+} Patient;
+
+Patient* loadPatientFile(int* count) {
+    FILE *file = fopen(config_file, "r");
+    if (file == NULL) {
+        printf("Error: Cannot open input file %s.\n", config_file);
+        *count = 0;
+        return NULL;
+    }
+
+    // Determine the number of records by counting lines
+    int num_records = 0;
+    char line[200];
+    while (fgets(line, sizeof(line), file) != NULL) {
+        // Skip header line if present and non-data lines
+        if (num_records == 0 && strncmp(line, "ID,Name,", 8) == 0) {
+            continue; // Skip header
+        }
+        num_records++;
+    }
+
+    if (num_records == 0) {
+        printf("No patient data found in %s.\n", config_file);
+        fclose(file);
+        *count = 0;
+        return NULL;
+    }
+
+    // Allocate memory for the patient array
+    Patient *patients = (Patient *)malloc(num_records * sizeof(Patient));
+    if (patients == NULL) {
+        perror("Error allocating memory");
+        fclose(file);
+        *count = 0;
+        return NULL;
+    }
+
+    // Reset file pointer to the beginning for reading data
+    fseek(file, 0, SEEK_SET);
+
+    int i = 0;
+    // Skip the header line again if we're reading from the start
+    if (fgets(line, sizeof(line), file) != NULL && strncmp(line, "ID,Name,", 8) == 0) {
+         // Header skipped
+    } else {
+        // No header, reset file pointer and process the first line
+        fseek(file, 0, SEEK_SET);
+    }
+    
+    // Read data line by line
+    while (i < num_records && fgets(line, sizeof(line), file) != NULL) {
+        // Use sscanf to parse the CSV format
+        if (sscanf(line, "%d,%49[^,],%f,%f,%d,%d,%d,%d",
+                   &patients[i].id, 
+                   patients[i].name, 
+                   &patients[i].weight, 
+                   &patients[i].height, 
+                   &patients[i].bp_sys, 
+                   &patients[i].bp_dias, 
+                   &patients[i].bs, 
+                   &patients[i].chol) == 8) {
+            
+            // Analyze the data immediately upon reading
+            patients[i].analysis = analyzeData(patients[i].weight, 
+                                                patients[i].height, 
+                                                patients[i].bp_sys, 
+                                                patients[i].bp_dias, 
+                                                patients[i].bs, 
+                                                patients[i].chol);
+            i++;
+        } else {
+            fprintf(stderr, "Warning: Skipping invalid line in data file: %s", line);
+        }
+    }
+
+    fclose(file);
+    *count = i; // Actual number of successfully loaded patients
+    printf("\n[SUCCESS] Loaded and analyzed data for %d patients from %s.\n", *count, config_file);
+    return patients;
+}
+
+void saveReportToFile(const Patient* patients, int count) {
+    FILE *fp = fopen(report_file, "w");
+    if (fp == NULL) {
+        perror("Error: Cannot open report file for writing");
+        return;
+    }
+
+    fprintf(fp, "========================================================\n");
+    fprintf(fp, "               PATIENT HEALTH EVALUATION REPORT\n");
+    fprintf(fp, "========================================================\n");
+    fprintf(fp, "Total Patients Processed: %d\n\n", count);
+
+    for (int i = 0; i < count; i++) {
+        fprintf(fp, "--- Patient ID: %d | Name: %s ---\n", patients[i].id, patients[i].name);
+        fprintf(fp, "Raw Data: W=%.2f kg, H=%.2f m, BP=%d/%d, BS=%d, Chol=%d\n",
+                patients[i].weight, patients[i].height, patients[i].bp_sys, patients[i].bp_dias, 
+                patients[i].bs, patients[i].chol);
+        fprintf(fp, "BMI (Body Mass Index): %.2f\n", patients[i].analysis.bmi);
+
+        // Print Statuses (Helper function could map statuses to strings for better output)
+        fprintf(fp, "STATUSES:\n");
+        fprintf(fp, "- BMI Status Code: %d\n", patients[i].analysis.bmi_status);
+        fprintf(fp, "- BP Status Code: %d\n", patients[i].analysis.bp_status);
+        fprintf(fp, "- Blood Sugar Status Code: %d\n", patients[i].analysis.bs_status);
+        fprintf(fp, "- Cholesterol Status Code: %d\n", patients[i].analysis.chol_status);
+        
+        // Include Nat's part (Diet and Exercise Recommendations)
+        dietAddAvoid(patients[i].analysis, fp);
+        exerciseAddAvoid(patients[i].analysis, fp);
+
+        fprintf(fp, "\n--------------------------------------------------------\n\n");
+    }
+
+    fclose(fp);
+    printf("[SUCCESS] Generated report saved to %s.\n", report_file);
+}
 // RYAN'S PART
 typedef struct{
     float bmi; // Raw calculation of the patient's BMI
@@ -329,5 +457,6 @@ void exerciseAddAvoid(HealthData data, FILE *fp) {
 
     fprintf(fp, "\n==========================================\n");
 }
+
 
 

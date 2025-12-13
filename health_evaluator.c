@@ -474,11 +474,8 @@ void exerciseAddAvoid(HealthData data, FILE *fp) {
     fprintf(fp, "\n==========================================\n");
 }
 
-// -------------------------------
-// ERROR HANDLING FUNCTION
-// ------------------------------
-int get_valid_int(const char *prompt) {
-    int value;
+float get_valid_float(const char *prompt) {
+    float value; // Changed to float
     int check;
     char buffer[100]; // Buffer to read the input line
 
@@ -486,43 +483,72 @@ int get_valid_int(const char *prompt) {
         // 1. Print the prompt
         printf("%s", prompt);
 
-        // 2. Read the entire line of input into a buffer (safer than plain scanf)
+        // 2. Read the entire line of input into a buffer
         if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
             // Error reading input
             continue; 
         }
-
-        // 3. Attempt to scan an integer from the buffer
+        // 3. Attempt to scan a float from the buffer
         int chars_read = 0;
-        // %d reads the integer. %n stores the number of characters read.
-        check = sscanf(buffer, "%d%n", &value, &chars_read);
+        // %f reads the float. %n stores the number of characters read.
+        // NOTE: %n stores an int, not a size_t, which is correct for sscanf.
+        check = sscanf(buffer, "%f%n", &value, &chars_read); // Changed %d to %f
 
         // 4. Check the result of sscanf
         if (check == 1) {
-            // An integer was successfully read. Now check for extra non-whitespace characters.
+            // A float was successfully read. Now check for extra non-whitespace characters.
             char *p = buffer + chars_read;
 
             // Check if the rest of the buffer only contains whitespace or newline
+            // This is generally correct for float validation as well
             while (*p != '\0' && (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r')) {
                 p++;
             }
 
             // If *p is the null terminator, the input was valid
             if (*p == '\0') {
-                return value; // Valid whole number entered. Exit the function.
+                return value; // Valid number entered. Exit the function.
+            }
+        }
+        // 5. If input failed or extra characters were found, print the required error
+        printf("Invalid Input. Please Enter number only.\n");
+        // The loop repeats, asking for input again.
+    }
+}
+
+int get_valid_int(const char *prompt) {
+    int value;
+    int check;
+    char buffer[100]; 
+
+    while (1) {
+        printf("%s", prompt);
+        if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
+            continue; 
+        }
+
+        int chars_read = 0;
+        check = sscanf(buffer, "%d%n", &value, &chars_read);
+
+        if (check == 1) {
+            char *p = buffer + chars_read;
+
+            while (*p != '\0' && (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r')) {
+                p++;
+            }
+
+            if (*p == '\0') {
+                return value; 
             }
         }
 
-        // 5. If input failed or extra characters were found, print the required error
-        printf("Invalid Input. Please Enter a whole number.\n");
-        // The loop repeats, asking for input again.
+        printf("Invalid Input. Please Enter a number.\n");
     }
 }
 
 // --------------------------------------------------
 // MAIN FUNCTION 
-// --------------------------------------------------
-
+// ------------------------------------------------__
 int main() {
     Profile user;
     int exists = loadProfile(&user);
@@ -539,7 +565,8 @@ int main() {
         printf("4. View Exercise Recommendations\n");
         printf("5. Exit\n");
         
-        choice = get_valid_int("Choice: ");
+        // Menu choice should still be an integer
+        choice = get_valid_int("Choice: "); 
 
         if (choice == 1) {
 
@@ -553,11 +580,13 @@ int main() {
                 }
             }
 
-            user.weight = get_valid_int("Weight (kg): ");
-            user.height = get_valid_int("Height (m or cm): ");
+            // Calls updated to use get_valid_float for non-whole number inputs
+            user.weight = get_valid_float("Weight (kg): "); 
+            user.height = get_valid_float("Height (m): "); // Changed prompt to suggest meters for precision
             
-            user.bp_sys = get_valid_int("BP Systolic: ");
-            user.bp_dias = get_valid_int("BP Diastolic: ");
+            // BP is typically an integer, so we can use the original int function (renamed)
+            user.bp_sys = get_valid_int("BP Systolic: "); 
+            user.bp_dias = get_valid_int("BP Diastolic: "); 
             
             printf("<<< Time Since Last Meal for Blood Sugar Test\n");
             printf("      1. 0-2 Hours After Meal\n");
@@ -565,12 +594,14 @@ int main() {
             printf("      3. 4-8 Hours After Meal\n");
 
             do {
-                user.hrs = get_valid_int("Choice: "); // Input 1, 2, or 3 expected
+                user.hrs = get_valid_int("Choice: "); // Menu choice is an integer
                 if (user.hrs > 3) {
                     printf("Invalid choice. Please enter 1, 2, or 3.\n");
                 }
             } while (user.hrs > 3);
-            user.bs = get_valid_int("Blood Sugar: ");
+            
+            // Blood sugar should be a float for common units (e.g., mmol/L)
+            user.bs = get_valid_float("Blood Sugar: "); 
 
             printf("<<< Type of Cholesterol Tested\n");
             printf("      1. Total Cholesterol\n");
@@ -579,12 +610,14 @@ int main() {
             printf("      4. Triglycerides\n");
 
             do {
-                user.chol_type = get_valid_int("Choice: "); // Input 1, 2, 3, or 4 expected
+                user.chol_type = get_valid_int("Choice: "); // Menu choice is an integer
                 if (user.chol_type > 4) {
                     printf("Invalid choice. Please enter 1, 2, 3, or 4.\n");
                 }
             } while (user.chol_type > 4);
-            user.chol = get_valid_int("Cholesterol: ");
+            
+            // Cholesterol should be a float
+            user.chol = get_valid_float("Cholesterol: "); 
 
             user.analysis = analyzeData(
                 user.weight, user.height,
@@ -639,5 +672,3 @@ int main() {
 
     return 0;
 }
-
-

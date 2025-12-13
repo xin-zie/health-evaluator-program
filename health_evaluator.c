@@ -474,6 +474,9 @@ void exerciseAddAvoid(HealthData data, FILE *fp) {
     fprintf(fp, "\n==========================================\n");
 }
 
+// -------------------------------
+// ERROR HANDLING FUNCTION
+// ------------------------------
 int get_valid_int(const char *prompt) {
     int value;
     int check;
@@ -636,4 +639,5 @@ int main() {
 
     return 0;
 }
+
 

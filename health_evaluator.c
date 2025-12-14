@@ -1,13 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-// Constants for File Names ---
+  
 #define profile_file "profile.csv"
 #define report_file "health_report.txt"
 
-// --- Structure Definitions ---
-// HealthData: Stores the calculated BMI and status codes based on the analysis
 typedef struct {
     float bmi;
     int bmi_status;
@@ -16,7 +13,6 @@ typedef struct {
     int chol_status;
 } HealthData;
 
-// Profile: Stores all user input data and the resulting analysis.
 typedef struct {
     char name[50];
     float weight;
@@ -36,8 +32,6 @@ HealthData analyzeData(float weight, float height, int bp_sys, int bp_dias, int 
 void dietAddAvoid(HealthData data, FILE *fp);
 void exerciseAddAvoid(HealthData data, FILE *fp);
 
-// Global Constant Arrays (for Labels) ---
-// BMI Status Labels 
 const char *const bmi_labels[] = {
     "Underweight",
     "Normal",
@@ -47,7 +41,6 @@ const char *const bmi_labels[] = {
     "Obesity Class 3"
 };
 
-// Blood Pressure Status Labels 
 const char *const bp_labels[] = {
     "Hypotension (Low)",
     "Normal",
@@ -57,7 +50,6 @@ const char *const bp_labels[] = {
     "Hypertensive Crisis"
 };
 
-// Blood Sugar Status Labels
 const char *const bs_labels[] = {
     "Dangerously Low",
     "Low",
@@ -66,21 +58,18 @@ const char *const bs_labels[] = {
     "Dangerously High"
 };
 
-// Cholesterol Status Labels
 const char *const chol_labels[] = {
     "Low Heart Disease Risk",
     "Borderline Risk",
     "High Risk"
 };
 
-// Time Since Last Meal Labels
 const char *const hrs_labels[] = {
     "0-2 Hours After Meal",
     "2-4 Hours After Meal",
     "4-8 Hours After Meal"
 };
 
-// Cholesterol Type Labels
 const char *const cholType_labels[] = {
     "Total",
     "Low-Density Lipoprotein",
@@ -88,9 +77,13 @@ const char *const cholType_labels[] = {
     "Triglycerides"
 };
 
+
+// -----------------------------------------
 // SAVE PROFILE TO CSV
-void saveProfile(Profile p) {   // Saves the user's current profile data to a CSV file.
-    FILE* file = fopen(profile_file, "w");  // Open file in write mode ("w") - overwrites existing data
+// -----------------------------------------
+
+void saveProfile(Profile p) {
+    FILE* file = fopen(profile_file, "w");
     if (!file) return;
 
     // Modified fprintf to include the full labels
@@ -100,56 +93,52 @@ void saveProfile(Profile p) {   // Saves the user's current profile data to a CS
     fclose(file);
 }
 
+// -----------------------------------------
 // LOAD PROFILE FROM CSV
-int loadProfile(Profile* p) {  // Loads the user's profile data from the CSV file.
-    FILE* file = fopen(profile_file, "r");  // Open file in read mode ("r")
+// -----------------------------------------
+
+int loadProfile(Profile* p) {
+    FILE* file = fopen(profile_file, "r");
     if (!file) return 0;
 
-     // Read the data back from the file. Use the corrected format string.
-    if (fscanf(file, "%49[^,], %d, %f, %f, %d, %d, %d, %d, %d, %d",
-               p->name, &p->age, &p->weight, &p->height,
-               &p->bp_sys, &p->bp_dias, &p->bs, &p->chol, &p->chol_type, &p->hrs) != 10) {
-        fclose(file);
-        return 0; // Failed to read all data
-    }
+    fscanf(file, "%49[^,],%f,%f,%d,%d,%d,%d,%d,%d",
+           p->name, &p->weight, &p->height,
+           &p->bp_sys, &p->bp_dias, &p->bs, &p->chol, &p->chol_type, &p->hrs);
 
     fclose(file);
 
-    // Re-analyze the data immediately upon loading
     p->analysis = analyzeData(
         p->weight, p->height,
         p->bp_sys, p->bp_dias,
         p->bs, p->chol, p->chol_type, p->hrs
     );
 
-    return 1;  // Profile loaded successfully
+    return 1;
 }
 
+// -----------------------------------------
 // REPORT GENERATOR
-void generateReport(Profile p) {  // Generates a basic health summary report in a text file.
-    FILE* fp = fopen(report_file, "w");  // Open the report file in write mode ("w") - overwrites previous report
+// -----------------------------------------
 
-    // Report Header
+void generateReport(Profile p) {
+    FILE* fp = fopen(report_file, "w");
+
     fprintf(fp, "HEALTH REPORT FOR: %s\n", p.name);
     fprintf(fp, "==============================\n");
-  
-    // BMI Summary
+
     fprintf(fp, "BMI: %.2f (Status: %s)\n",
             p.analysis.bmi,
             bmi_labels[p.analysis.bmi_status]);
-  
-    // Blood Pressure Summary
+
     fprintf(fp, "Blood Pressure: %d/%d (%s)\n",
             p.bp_sys, p.bp_dias,
             bp_labels[p.analysis.bp_status]);
-    
-    // Blood Sugar Summary
+
     fprintf(fp, "Blood Sugar (%s): %d (%s)\n",
             hrs_labels[p.hrs - 1],
             p.bs,
             bs_labels[p.analysis.bs_status]);
-  
-    // Cholesterol Summary
+
     fprintf(fp, "Cholesterol (%s): %d (%s)\n",
             cholType_labels[p.chol_type - 1],
             p.chol,
@@ -160,8 +149,10 @@ void generateReport(Profile p) {  // Generates a basic health summary report in 
     printf("\n[SUCCESS] Personal report generated in %s\n", report_file);
 }
 
+// -----------------------------------------
 // ANALYSIS FUNCTION
-// Calculates BMI and determines health status classifications.
+// -----------------------------------------
+
 HealthData analyzeData(float weight, float height, int bp_sys, int bp_dias, int bs, int chol, int chol_type, int hrs) {
     HealthData data;
 
@@ -276,12 +267,11 @@ HealthData analyzeData(float weight, float height, int bp_sys, int bp_dias, int 
 // -----------------------------------------
 
 void dietAddAvoid(HealthData data, FILE *fp) {
-    #define PRINT_LINE(fmt, ...) \
-        do { \
-            if(fp) fprintf(fp, fmt, ##__VA_ARGS__); \
-            printf(fmt, ##__VA_ARGS__); \
-        } while(0)
-
+  
+/* This function analyzes the user's health status (BP, blood sugar,
+cholesterol, and BMI) and outputs appropriate diet recommendations
+to a file using the given file pointer.*/
+  
     fprintf(fp, "\n==========================================\n");
     fprintf(fp, "            DIET RECOMMENDATIONS\n");
     fprintf(fp, "==========================================\n");
@@ -417,84 +407,89 @@ void dietAddAvoid(HealthData data, FILE *fp) {
 }
 
 void exerciseAddAvoid(HealthData data, FILE *fp) {
-
+  
+/* This function analyzes the user's health status (BP, blood sugar,
+cholesterol, and BMI) and outputs appropriate exercise recommendations
+to a file using the given file pointer.*/
+  
     fprintf(fp, "\n==========================================\n");
     fprintf(fp, "          EXERCISE RECOMMENDATIONS\n");
     fprintf(fp, "==========================================\n");
 
     fprintf(fp, "\n>>> GENERAL EXERCISE TIPS <<<\n");
 
-    // HIGH BP
+    // HIGH BP: prints tips if bp_status is greater than or equal to 3
     if (data.bp_status >= 3) {
         fprintf(fp, "\n[For High Blood Pressure]\n");
-        fprintf(fp, "- 30–40 minutes brisk walking daily.\n");
-        fprintf(fp, "- Light stretching and breathing exercises.\n");
-        fprintf(fp, "- Avoid heavy lifting.\n");
-    }
+        fprintf(fp, "- 10 minutes brisk walking daily (aerobic exercise is best for BP).\n");
+        fprintf(fp, "- Desk treadmilling or pedal pushing.\n");
+        fprintf(fp, "- Swimming.\n");
+    }//From the article: The six best exercises to control high blood pressure by Wesley Tyree(2025)
 
-    // LOW BP
+    // LOW BP: prints tips if bp_status is equal to 0
     if (data.bp_status == 0) {
         fprintf(fp, "\n[For Low Blood Pressure]\n");
         fprintf(fp, "- Light to moderate movements only.\n");
         fprintf(fp, "- Stay hydrated before exercising.\n");
-        fprintf(fp, "- Avoid sudden intense activities.\n");
-    }
+        fprintf(fp, "- Monitor symptoms.\n");
+    }//From the article: Exercise Tips For People With Low Blood Pressure by Manya Singh(2024)
 
-    // HIGH BLOOD SUGAR
+    // HIGH BLOOD SUGAR:prints tips if bs_status greater than or equal to 3
     if (data.bs_status >= 3) {
         fprintf(fp, "\n[For High Blood Sugar]\n");
-        fprintf(fp, "- 10–15 min walk after meals.\n");
+        fprintf(fp, "- 15-20 min walk after meals.\n");
         fprintf(fp, "- Low-impact cardio: cycling, swimming.\n");
-        fprintf(fp, "- Daily stretching.\n");
-    }
+        fprintf(fp, "- Squats.\n");
+        fprintf(fp, "- The soleus push-up.\n");
+    }//From the Article: 4 Exercises To Lower Blood Sugar by Paul Heltzel(2024)
 
-    // LOW BLOOD SUGAR
+    // LOW BLOOD SUGAR (Dangerously Low or Low) prints tips if bs_status lesser than or equal to 1
     if (data.bs_status <= 1) {
         fprintf(fp, "\n[For Low Blood Sugar]\n");
         fprintf(fp, "- No exercise on empty stomach.\n");
         fprintf(fp, "- Always keep glucose or candy nearby.\n");
         fprintf(fp, "- Light walking or yoga.\n");
-    }
+    }//From the article Food Timing and Exercise With Hypoglycemia by Cara Rosenbloom(2022)
 
-    // HIGH CHOLESTEROL
+    // HIGH CHOLESTEROL:prints tips if chol_status is equal to 2
     if (data.chol_status == 2) {
         fprintf(fp, "\n[For High Cholesterol]\n");
         fprintf(fp, "- 40–60 min cardio 3–4x/week.\n");
         fprintf(fp, "- Strength training twice a week.\n");
-    }
+    }// From the Article: Does exercise lower cholesterol? by Adam Rowden(2024)
 
-    // High BMI
+    // HIGH BMI:prints tips if bmi_status is greater than or equal to 2.
     if (data.bmi_status >= 2) {
         fprintf(fp, "\n[For High BMI]\n");
         fprintf(fp, "- 30–45 min cardio daily.\n");
         fprintf(fp, "- Strength training slowly increasing intensity.\n");
-    }
+    }//From the article:The Best Exercises for Obese Clients: A Complete guide byPhilip Stefanov (2025)
 
-    // Low BMI
+    // LOW BMI:prints tips if bmi_status is equal to 0.
     if (data.bmi_status == 0) {
         fprintf(fp, "\n[For Low BMI]\n");
-        fprintf(fp, "- Focus on muscle-gain exercises.\n");
-        fprintf(fp, "- Avoid too much cardio.\n");
+        fprintf(fp, "- Focus on muscle-gain exercises(pushups,pullups).\n");
         fprintf(fp, "- Moderate weight training.\n");
-    }
+    }//From the article:How to exercise to bulk up and shape your body by Tim Jewell
 
     fprintf(fp, "\n>>> EXERCISES TO AVOID <<<\n");
 
+    // HIGH BP AVOID :prints tips if bp_status is greater than or equal to 3
     if (data.bp_status >= 3)
         fprintf(fp, "- Heavy lifting, HIIT.\n");
-
+    // LOW BP AVOID: prints tips if bp_status is equal to 0
     if (data.bp_status == 0)
         fprintf(fp, "- Sudden intense workouts.\n");
-
+    // HIGH SUGAR AVOID:prints tips if bs_status greater than or equal to 3
     if (data.bs_status >= 3)
         fprintf(fp, "- Long fasted cardio.\n");
-
+    // LOW SUGAR AVOID:prints tips if bs_status lesser than or equal to 1
     if (data.bs_status <= 1)
         fprintf(fp, "- Intense workouts without pre-meal.\n");
-
+    // HIGH BMI AVOID:prints tips if bmi_status is greater than or equal to 2.
     if (data.bmi_status >= 2)
         fprintf(fp, "- High-impact intensive jumping workouts.\n");
-
+     // LOW BMI AVOID:prints tips if bmi_status is equal to 0.
     if (data.bmi_status == 0)
         fprintf(fp, "- Long cardio sessions.\n");
 

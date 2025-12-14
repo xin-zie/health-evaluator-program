@@ -271,24 +271,20 @@ HealthData analyzeData(float weight, float height, int bp_sys, int bp_dias, int 
     return data;
 }
 
-// -----------------------------------------
 // RECOMMENDATIONS FUNCTION
-// -----------------------------------------
-
 void dietAddAvoid(HealthData data, FILE *fp) {
-    #define PRINT_LINE(fmt, ...) \
-        do { \
-            if(fp) fprintf(fp, fmt, ##__VA_ARGS__); \
-            printf(fmt, ##__VA_ARGS__); \
-        } while(0)
-
+  
+/* This function analyzes the user's health status (BP, blood sugar,
+cholesterol, and BMI) and outputs appropriate diet recommendations
+to a file using the given file pointer.*/
+  
     fprintf(fp, "\n==========================================\n");
     fprintf(fp, "            DIET RECOMMENDATIONS\n");
     fprintf(fp, "==========================================\n");
 
     fprintf(fp, "\n>>> WHAT YOU SHOULD ADD TO YOUR DIET <<<\n");
 
-    // HIGH BP: prints recomendations if bp_status is greater than or equal to 3
+    // HIGH BP: prints recommendations if bp_status is greater than or equal to 3
     if (data.bp_status >= 3) {
         fprintf(fp, "\n[For High Blood Pressure]\n");
         fprintf(fp, "- More potassium-rich fruits (banana, avocado).\n");
@@ -304,9 +300,9 @@ void dietAddAvoid(HealthData data, FILE *fp) {
         fprintf(fp, "- Small frequent meals.\n");
         fprintf(fp, "- Moderate salty snacks.\n");
         fprintf(fp, "- Foods high in folate (asparagus,liver).\n");
-    }//From the article : Raise low blood pressure naturally through diet by Cory Whelan (2025).
+    }//From the article: Raise low blood pressure naturally through diet by Cory Whelan (2025).
 
-    // HIGH BLOOD SUGAR:prints recomendations if bs_status greater than or equal to 3
+    // HIGH BLOOD SUGAR: prints recommendations if bs_status greater than or equal to 3
     if (data.bs_status >= 3) {
         fprintf(fp, "\n[For High Blood Sugar]\n");
         fprintf(fp, "- High-fiber vegetables (ampalaya, okra).\n");
@@ -315,14 +311,14 @@ void dietAddAvoid(HealthData data, FILE *fp) {
         fprintf(fp, "- Nonfat or low-fat dairy (milk, yogurt.\n");
     }//From National Library of Medicine.Diabetic diet.
 
-    // LOW BLOOD SUGAR (Dangerously Low or Low) prints recomendations if bs_status lesser than or equal to 1
+    // LOW BLOOD SUGAR (Dangerously Low or Low) prints recommendations if bs_status is less than or equal to 1
     if (data.bs_status <= 1) {
         fprintf(fp, "\n[For Low Blood Sugar]\n");
         fprintf(fp, "- Eat small meals every 3-4 hours.\n");
         fprintf(fp, "- Fruits with natural sugar (banana, mango).\n");
         fprintf(fp, "- Milk, yogurt, whole grains.\n");
         fprintf(fp, "- Never skip meals.\n");
-    }//From thr article: A meal plan to help you manage hypoglycemia by Cory Whelan (2025).
+    }//From the article: A meal plan to help you manage hypoglycemia by Cory Whelan (2025).
 
     // HIGH CHOLESTEROL:prints recomendations if chol_status is equal to 2
     if (data.chol_status == 2) {
@@ -333,15 +329,15 @@ void dietAddAvoid(HealthData data, FILE *fp) {
         fprintf(fp, "- Steamed/boiled vegetables.\n");
     }// From National Library of Medicine. How to Lower Cholesterol with Diet. 
 
-    // HIGH BMI:prints recomendations if bmi_status is greater than or equal to 2.
+    // HIGH BMI: prints recommendations if bmi_status is greater than or equal to 2.
     if (data.bmi_status >= 2) {
         fprintf(fp, "\n[For High BMI]\n");
         fprintf(fp, "- Lean protein(chicken breast,red meats).\n");
         fprintf(fp, "- Cruciferous vegetables(broccoli, cauliflower).\n");
         fprintf(fp, "- Whole grains.\n");
-    }//From the article : 16 of the Best Foods for Your Healthy Weight Journey by Lisa Wartenberg(2025)
+    }//From the article: 16 of the Best Foods for Your Healthy Weight Journey by Lisa Wartenberg(2025)
 
-    // LOW BMI:prints recomendations if bmi_status is equal to 0.
+    // LOW BMI: prints recommendations if bmi_status is equal to 0.
     if (data.bmi_status == 0) {
         fprintf(fp, "\n[For Low BMI]\n");
         fprintf(fp, "- High-calorie healthy foods.\n");
@@ -352,7 +348,7 @@ void dietAddAvoid(HealthData data, FILE *fp) {
 
     fprintf(fp, "\n>>> WHAT YOU SHOULD AVOID <<<\n");
 
-    // HIGH BP AVOID :prints recomendations if bp_status is greater than or equal to 3
+    // HIGH BP AVOID: prints recommendations if bp_status is greater than or equal to 3
     if (data.bp_status >= 3) {
         fprintf(fp, "\n[For High Blood Pressure]\n");
         fprintf(fp, "- Salty foods.\n");
@@ -361,7 +357,7 @@ void dietAddAvoid(HealthData data, FILE *fp) {
         fprintf(fp, "- Excess caffeine.\n");
     } //From the article : Foods that lower blood pressure by Victoria Taylor(2024).
 
-    // LOW BP AVOID: prints recomendations if bp_status is equal to 0
+    // LOW BP AVOID: prints recommendations if bp_status is equal to 0
     if (data.bp_status == 0) {
         fprintf(fp, "\n[For Low Blood Pressure]\n");
         fprintf(fp, "- Excessive alcohol.\n");
@@ -369,7 +365,7 @@ void dietAddAvoid(HealthData data, FILE *fp) {
         fprintf(fp, "- Heavy meals at once.\n");
     }  //From the article : Raise low blood pressure naturally through diet by Cory Whelan (2025).
 
-    // HIGH SUGAR AVOID:prints recomendations if bs_status greater than or equal to 3
+    // HIGH SUGAR AVOID: prints recommendations if bs_status greater than or equal to 3
     if (data.bs_status >= 3) {
         fprintf(fp, "\n[For High Blood Sugar]\n");
         fprintf(fp, "- High-carb foods and drinks.\n");
@@ -378,15 +374,15 @@ void dietAddAvoid(HealthData data, FILE *fp) {
         fprintf(fp, "- Alcohol.\n");
     }//From National Library of Medicine.Diabetic diet.
 
-    // LOW SUGAR AVOID:prints recomendations if bs_status lesser than or equal to 1
+    // LOW SUGAR AVOID: prints recommendations if bs_status is less than or equal to 1
     if (data.bs_status <= 1) {
         fprintf(fp, "\n[For Low Blood Sugar]\n");
         fprintf(fp, "- Skipping meals.\n");
         fprintf(fp, "- Too much caffeine.\n");
         fprintf(fp, "- Alcohol.\n");
-    }//From the article :A meal plan to help you manage hypoglycemia by Cory Whelan (2025).
+    }//From the article: A meal plan to help you manage hypoglycemia by Cory Whelan (2025).
 
-    // HIGH CHOLESTEROL AVOID:prints recomendations if chol_status is equal to 2
+    // HIGH CHOLESTEROL AVOID: prints recommendations if chol_status is equal to 2
     if (data.chol_status == 2) {
         fprintf(fp, "\n[For High Cholesterol]\n");
         fprintf(fp, "- Fried foods.\n");
@@ -395,7 +391,7 @@ void dietAddAvoid(HealthData data, FILE *fp) {
         fprintf(fp, "- Salty foods.\n");
     }// From National Library of Medicine. How to Lower Cholesterol with Diet. 
   
-    // HIGH BMI AVOID:prints recomendations if bmi_status is greater than or equal to 2.
+    // HIGH BMI AVOID: prints recommendations if bmi_status is >= 2.
     if (data.bmi_status >= 2) {
         fprintf(fp, "\n[For High BMI]\n");
         fprintf(fp, "- Sugary drinks.\n");
@@ -404,7 +400,7 @@ void dietAddAvoid(HealthData data, FILE *fp) {
         fprintf(fp, "- Alcohol.\n");
     } //From the article:11 foods to avoid when trying to lose weight by Hrefna Palsdottir(2023)
   
-    // LOW BMI AVOID:prints recomendations if bmi_status is equal to 0.
+    // LOW BMI AVOID: prints recommendations if bmi_status is equal to 0.
     if (data.bmi_status == 0) {
         fprintf(fp, "\n[For Low BMI]\n");
         fprintf(fp, "- Whole Eggs.\n");
@@ -417,93 +413,96 @@ void dietAddAvoid(HealthData data, FILE *fp) {
 }
 
 void exerciseAddAvoid(HealthData data, FILE *fp) {
-
+  
+/* This function analyzes the user's health status (BP, blood sugar,
+cholesterol, and BMI) and outputs appropriate exercise recommendations
+to a file using the given file pointer.*/
+  
     fprintf(fp, "\n==========================================\n");
     fprintf(fp, "          EXERCISE RECOMMENDATIONS\n");
     fprintf(fp, "==========================================\n");
 
     fprintf(fp, "\n>>> GENERAL EXERCISE TIPS <<<\n");
 
-    // HIGH BP
+    // HIGH BP: prints tips if bp_status is greater than or equal to 3
     if (data.bp_status >= 3) {
         fprintf(fp, "\n[For High Blood Pressure]\n");
-        fprintf(fp, "- 30–40 minutes brisk walking daily.\n");
-        fprintf(fp, "- Light stretching and breathing exercises.\n");
-        fprintf(fp, "- Avoid heavy lifting.\n");
-    }
+        fprintf(fp, "- 10 minutes brisk walking daily (aerobic exercise is best for BP).\n");
+        fprintf(fp, "- Desk treadmilling or pedal pushing.\n");
+        fprintf(fp, "- Swimming.\n");
+    }//From the article: The six best exercises to control high blood pressure by Wesley Tyree(2025)
 
-    // LOW BP
+    // LOW BP: prints tips if bp_status is equal to 0
     if (data.bp_status == 0) {
         fprintf(fp, "\n[For Low Blood Pressure]\n");
         fprintf(fp, "- Light to moderate movements only.\n");
         fprintf(fp, "- Stay hydrated before exercising.\n");
-        fprintf(fp, "- Avoid sudden intense activities.\n");
-    }
+        fprintf(fp, "- Monitor symptoms.\n");
+    }//From the article: Exercise Tips For People With Low Blood Pressure by Manya Singh(2024)
 
-    // HIGH BLOOD SUGAR
+    // HIGH BLOOD SUGAR: prints tips if bs_status greater than or equal to 3
     if (data.bs_status >= 3) {
         fprintf(fp, "\n[For High Blood Sugar]\n");
-        fprintf(fp, "- 10–15 min walk after meals.\n");
+        fprintf(fp, "- 15-20 min walk after meals.\n");
         fprintf(fp, "- Low-impact cardio: cycling, swimming.\n");
-        fprintf(fp, "- Daily stretching.\n");
-    }
+        fprintf(fp, "- Squats.\n");
+        fprintf(fp, "- The soleus push-up.\n");
+    }//From the Article: 4 Exercises To Lower Blood Sugar by Paul Heltzel(2024)
 
-    // LOW BLOOD SUGAR
+    // LOW BLOOD SUGAR (Dangerously Low or Low) prints tips if bs_status is less than or equal to 1
     if (data.bs_status <= 1) {
         fprintf(fp, "\n[For Low Blood Sugar]\n");
         fprintf(fp, "- No exercise on empty stomach.\n");
         fprintf(fp, "- Always keep glucose or candy nearby.\n");
         fprintf(fp, "- Light walking or yoga.\n");
-    }
+    }//From the article Food Timing and Exercise With Hypoglycemia by Cara Rosenbloom(2022)
 
-    // HIGH CHOLESTEROL
+    // HIGH CHOLESTEROL:prints tips if chol_status is equal to 2
     if (data.chol_status == 2) {
         fprintf(fp, "\n[For High Cholesterol]\n");
         fprintf(fp, "- 40–60 min cardio 3–4x/week.\n");
         fprintf(fp, "- Strength training twice a week.\n");
-    }
+    }// From the Article: Does exercise lower cholesterol? by Adam Rowden(2024)
 
-    // High BMI
+    // HIGH BMI: prints tips if bmi_status is greater than or equal to 2.
     if (data.bmi_status >= 2) {
         fprintf(fp, "\n[For High BMI]\n");
         fprintf(fp, "- 30–45 min cardio daily.\n");
         fprintf(fp, "- Strength training slowly increasing intensity.\n");
-    }
+    }//From the article: The Best Exercises for Obese Clients: A Complete Guide by Philip Stefanov (2025)
 
-    // Low BMI
+    // LOW BMI: prints tips if bmi_status is equal to 0.
     if (data.bmi_status == 0) {
         fprintf(fp, "\n[For Low BMI]\n");
-        fprintf(fp, "- Focus on muscle-gain exercises.\n");
-        fprintf(fp, "- Avoid too much cardio.\n");
+        fprintf(fp, "- Focus on muscle-gain exercises(pushups,pullups).\n");
         fprintf(fp, "- Moderate weight training.\n");
-    }
+    }//From the article: How to exercise to bulk up and shape your body by Tim Jewell
 
     fprintf(fp, "\n>>> EXERCISES TO AVOID <<<\n");
 
+    // HIGH BP AVOID: prints tips if bp_status is greater than or equal to 3
     if (data.bp_status >= 3)
         fprintf(fp, "- Heavy lifting, HIIT.\n");
-
+    // LOW BP AVOID: prints tips if bp_status is equal to 0
     if (data.bp_status == 0)
         fprintf(fp, "- Sudden intense workouts.\n");
-
+    // HIGH SUGAR AVOID: prints tips if bs_status greater than or equal to 3
     if (data.bs_status >= 3)
         fprintf(fp, "- Long fasted cardio.\n");
-
+    // LOW SUGAR AVOID: prints tips if bs_status is less than or equal to 1
     if (data.bs_status <= 1)
         fprintf(fp, "- Intense workouts without pre-meal.\n");
-
+    // HIGH BMI AVOID: prints tips if bmi_status is greater than or equal to 2.
     if (data.bmi_status >= 2)
         fprintf(fp, "- High-impact intensive jumping workouts.\n");
-
+     // LOW BMI AVOID: prints tips if bmi_status is equal to 0.
     if (data.bmi_status == 0)
         fprintf(fp, "- Long cardio sessions.\n");
 
     fprintf(fp, "\n==========================================\n");
 }
 
-// -------------------------------
 // ERROR HANDLING FUNCTION
-// ------------------------------
 int get_valid_int(const char *prompt) {
     int value;
     int check;
@@ -546,10 +545,7 @@ int get_valid_int(const char *prompt) {
     }
 }
 
-// --------------------------------------------------
 // MAIN FUNCTION 
-// --------------------------------------------------
-
 int main() {
     Profile user;
     int exists = loadProfile(&user);
@@ -666,6 +662,7 @@ int main() {
 
     return 0;
 }
+
 
 
 

@@ -542,7 +542,49 @@ int get_valid_int(const char *prompt) {
         }
 
         // 5. If input failed or extra characters were found, print the required error
-        printf("Invalid Input. Please Enter a whole number.\n");
+        printf("Invalid Input. Please Enter a number.\n");
+        // The loop repeats, asking for input again.
+    }
+}
+
+float get_valid_float(const char *prompt) {
+    float value; // Changed to float
+    int check;
+    char buffer[100]; // Buffer to read the input line
+
+    while (1) {
+        // 1. Print the prompt
+        printf("%s", prompt);
+
+        // 2. Read the entire line of input into a buffer
+        if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
+            // Error reading input
+            continue; 
+        }
+        // 3. Attempt to scan a float from the buffer
+        int chars_read = 0;
+        // %f reads the float. %n stores the number of characters read.
+        // NOTE: %n stores an int, not a size_t, which is correct for sscanf.
+        check = sscanf(buffer, "%f%n", &value, &chars_read); // Changed %d to %f
+
+        // 4. Check the result of sscanf
+        if (check == 1) {
+            // A float was successfully read. Now check for extra non-whitespace characters.
+            char *p = buffer + chars_read;
+
+            // Check if the rest of the buffer only contains whitespace or newline
+            // This is generally correct for float validation as well
+            while (*p != '\0' && (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r')) {
+                p++;
+            }
+
+            // If *p is the null terminator, the input was valid
+            if (*p == '\0') {
+                return value; // Valid number entered. Exit the function.
+            }
+        }
+        // 5. If input failed or extra characters were found, print the required error
+        printf("Invalid Input. Please enter a number only.\n");
         // The loop repeats, asking for input again.
     }
 }
@@ -579,11 +621,11 @@ int main() {
             }
 
             user.age = get_valid_int("Age: ");
-            user.weight = get_valid_int("Weight (kg): ");
-            user.height = get_valid_int("Height (m or cm): ");
+            user.weight = get_valid_float("Weight (kg): ");
+            user.height = get_valid_float("Height (m or cm): ");
             
-            user.bp_sys = get_valid_int("BP Systolic: ");
-            user.bp_dias = get_valid_int("BP Diastolic: ");
+            user.bp_sys = get_valid_float("BP Systolic: ");
+            user.bp_dias = get_valid_float("BP Diastolic: ");
             
             printf("<<< Time Since Last Meal for Blood Sugar Test\n");
             printf("      1. 0-2 Hours After Meal\n");
@@ -596,7 +638,7 @@ int main() {
                     printf("Invalid choice. Please enter 1, 2, or 3.\n");
                 }
             } while (user.hrs > 3);
-            user.bs = get_valid_int("Blood Sugar: ");
+            user.bs = get_valid_float("Blood Sugar: ");
 
             printf("<<< Type of Cholesterol Tested\n");
             printf("      1. Total Cholesterol\n");
@@ -610,7 +652,7 @@ int main() {
                     printf("Invalid choice. Please enter 1, 2, 3, or 4.\n");
                 }
             } while (user.chol_type > 4);
-            user.chol = get_valid_int("Cholesterol: ");
+            user.chol = get_valid_float("Cholesterol: ");
 
             user.analysis = analyzeData(
                 user.weight, user.height,
@@ -665,4 +707,3 @@ int main() {
 
     return 0;
 }
-

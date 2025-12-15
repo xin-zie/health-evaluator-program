@@ -3,8 +3,8 @@
 #include <string.h>
 
 // Constants for File Names ---
-#define profile_file "profile.csv"
-#define report_file "health_report.txt"
+#define profile_file "user_data.csv"
+#define report_file "health_index.txt"
 
 // --- Structure Definitions ---
 // HealthData: Stores the calculated BMI and status codes based on the analysis
@@ -22,10 +22,10 @@ typedef struct {
     int age;
     float weight;
     float height;
-    int bp_sys;
-    int bp_dias;
-    int bs;
-    int chol;
+    float bp_sys;
+    float bp_dias;
+    float bs;
+    float chol;
     int bs_flag;
     int chol_type;
     int hrs;
@@ -33,7 +33,9 @@ typedef struct {
 } Profile;
 
 // Function prototypes
-HealthData analyzeData(float weight, float height, int bp_sys, int bp_dias, int bs, int chol, int chol_type, int hrs); 
+HealthData analyzeData(float weight, float height, float bp_sys, float bp_dias, float bs, float chol, int chol_type, int hrs);
+void saveProfile(Profile p);
+int loadProfile(Profile* p);
 void dietAddAvoid(HealthData data, FILE *fp);
 void exerciseAddAvoid(HealthData data, FILE *fp);
 
@@ -90,40 +92,45 @@ const char *const cholType_labels[] = {
 };
 
 // SAVE PROFILE TO CSV
-void saveProfile(Profile p) {   // Saves the user's current profile data to a CSV file.
-    FILE* file = fopen(profile_file, "w");  // Open file in write mode ("w") - overwrites existing data
-    if (!file) return;
+void saveProfile(Profile p) {
+    FILE* file = fopen(profile_file, "w"); // Open file in write mode ("w")
+    if (!file) {
+        printf("Error: Could not open profile file for saving.\n");
+        return;
+    }
 
-    // Modified fprintf to include the full labels
-    fprintf(file, "%s, \nAge: %d, \nWeight: %.2f,\nHeight: %.2f,\nBlood Pressure Systolic: %d,\nBlood Pressure Diastolic: %d,\nBlood Sugar: %d,\nCholesterol: %d,\nCholesterol Type Option: %d,\nBlood Sugar Option: %d",
-            p.name, p.age, p.weight, p.height, p.bp_sys, p.bp_dias, p.bs, p.chol, p.chol_type, p.hrs);
+    // Corrected fprintf: writes all values as a single, comma-separated line.
+    fprintf(file, "%s, %d, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %d, %d\n",
+        p.name, p.age, p.weight, p.height, p.bp_sys, p.bp_dias, 
+        p.bs, p.chol, p.chol_type, p.hrs);
 
     fclose(file);
 }
 
 // LOAD PROFILE FROM CSV
-int loadProfile(Profile* p) {  // Loads the user's profile data from the CSV file.
-    FILE* file = fopen(profile_file, "r");  // Open file in read mode ("r")
+int loadProfile(Profile* p) { 
+    FILE* file = fopen(profile_file, "r"); 
     if (!file) return 0;
 
-     // Read the data back from the file. Use the corrected format string.
-    if (fscanf(file, "%49[^,], %d, %d, %f, %f, %d, %d, %d, %d, %d, %d",
-               p->name, &p->age, &p->weight, &p->height,
-               &p->bp_sys, &p->bp_dias, &p->bs, &p->chol, &p->chol_type, &p->hrs) != 10) {
+    if (fscanf(file, "%49[^,], %d, %f, %f, %f, %f, %f, %f, %d, %d",
+                p->name, &p->age, &p->weight, &p->height,
+                &p->bp_sys, &p->bp_dias, &p->bs, &p->chol, 
+                &p->chol_type, &p->hrs) != 10) {
+        
         fclose(file);
-        return 0; // Failed to read all data
+        return 0; // Failed to read all 10 items
     }
 
     fclose(file);
 
-    // Re-analyze the data immediately upon loading
+    // ... The rest of the function remains the same ...
     p->analysis = analyzeData(
         p->weight, p->height,
         p->bp_sys, p->bp_dias,
         p->bs, p->chol, p->chol_type, p->hrs
     );
 
-    return 1;  // Profile loaded successfully
+    return 1; // Profile loaded successfully
 }
 
 // REPORT GENERATOR
@@ -164,7 +171,7 @@ void generateReport(Profile p) {  // Generates a basic health summary report in 
 
 // ANALYSIS FUNCTION
 // Calculates BMI and determines health status classifications.
-HealthData analyzeData(float weight, float height, int bp_sys, int bp_dias, int bs, int chol, int chol_type, int hrs) {
+HealthData analyzeData(float weight, float height, float bp_sys, float bp_dias, float bs, float chol, int chol_type, int hrs) {
     HealthData data;
 
     // Auto detect height in cm or meters
@@ -411,8 +418,22 @@ to a file using the given file pointer.*/
         fprintf(fp, "- Tuna.\n");
     }//From the article: Diet Chart For underweight Patient by Hirna Firdous(2020).
 
+    // ALL NORMAL CASE
+    if (data.bp_status >= 1 && data.bp_status <= 2 && data.bs_status == 2 && data.chol_status == 0 && data.bmi_status == 1) {
+        fprintf(fp, "\n[ALL RESULTS NORMAL]\n");
+        fprintf(fp, "- Maintain a balanced diet.\n");
+        fprintf(fp, "- Eat a variety of fruits and vegetables daily.\n");
+        fprintf(fp, "- Continue whole grains, lean protein, and healthy fats.\n");
+        fprintf(fp, "- Limit junk food and sugary drinks.\n");
+        fprintf(fp, "- Stay hydrated and practice portion control.\n");
+
+        fprintf(fp, "\n>>> WHAT YOU SHOULD AVOID <<<\n");
+        fprintf(fp, "- Overeating.\n");
+        fprintf(fp, "- Excessive fast food and sugary snacks.\n");
+        fprintf(fp, "- Sedentary lifestyle.\n");
+    }
+
     fprintf(fp, "\n==========================================\n");
-}
 
 void exerciseAddAvoid(HealthData data, FILE *fp) {
   
@@ -501,8 +522,20 @@ to a file using the given file pointer.*/
     if (data.bmi_status == 0)
         fprintf(fp, "- Long cardio sessions.\n");
 
+    // ALL NORMAL CASE
+    if (data.bp_status >= 1 && data.bp_status <= 2 && data.bs_status == 2 && data.chol_status == 0 && data.bmi_status == 1) {
+        fprintf(fp, "\n[ALL RESULTS NORMAL]\n");
+        fprintf(fp, "- Continue regular physical activity.\n");
+        fprintf(fp, "- 30 minutes of moderate exercise most days.\n");
+        fprintf(fp, "- Mix cardio, strength training, and flexibility exercises.\n");
+        fprintf(fp, "- Stay consistent and avoid prolonged inactivity.\n");
+
+        fprintf(fp, "\n>>> EXERCISES TO AVOID <<<\n");
+        fprintf(fp, "- Prolonged inactivity.\n");
+        fprintf(fp, "- Overtraining without rest.\n");
+    }
+
     fprintf(fp, "\n==========================================\n");
-}
 
 // ERROR HANDLING FUNCTION
 int get_valid_int(const char *prompt) {
@@ -594,6 +627,7 @@ int main() {
     Profile user;
     int exists = loadProfile(&user);
     int choice;
+    const char *const report_file = "health_index.txt";
 
     while (1) {
         printf("\n=== MY PERSONAL HEALTH TRACKER ===\n");
@@ -623,7 +657,8 @@ int main() {
             user.age = get_valid_int("Age: ");
             user.weight = get_valid_float("Weight (kg): ");
             user.height = get_valid_float("Height (m or cm): ");
-            
+
+            // FIX: Blood pressure inputs MUST use get_valid_float because bp_sys and bp_dias are floats in the struct.
             user.bp_sys = get_valid_float("BP Systolic: ");
             user.bp_dias = get_valid_float("BP Diastolic: ");
             
@@ -634,10 +669,12 @@ int main() {
 
             do {
                 user.hrs = get_valid_int("Choice: "); 
-                if (user.hrs > 3) {
+                if (user.hrs < 1 || user.hrs > 3) {
                     printf("Invalid choice. Please enter 1, 2, or 3.\n");
                 }
-            } while (user.hrs > 3);
+            } while (user.hrs < 1 || user.hrs > 3);
+
+            // FIX: Blood sugar input MUST use get_valid_float.
             user.bs = get_valid_float("Blood Sugar: ");
 
             printf("<<< Type of Cholesterol Tested\n");
@@ -648,10 +685,12 @@ int main() {
 
             do {
                 user.chol_type = get_valid_int("Choice: "); 
-                if (user.chol_type > 4) {
+                if (user.chol_type < 1 || user.chol_type > 4) {
                     printf("Invalid choice. Please enter 1, 2, 3, or 4.\n");
                 }
-            } while (user.chol_type > 4);
+            } while (user.chol_type < 1 || user.chol_type > 4);
+
+            // FIX: Cholesterol input MUST use get_valid_float.
             user.chol = get_valid_float("Cholesterol: ");
 
             user.analysis = analyzeData(
@@ -700,7 +739,6 @@ int main() {
             break;
         }
         else {
-            // This case handles valid integers outside the 1-5 range
             printf("\n ===== Invalid choice. Please enter a number between 1 and 5. ===== \n");
         }
     }
